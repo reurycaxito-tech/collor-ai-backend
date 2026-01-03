@@ -6,38 +6,36 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 🔴 CHAVE DIRETA (TEMPORÁRIO)
 const openai = new OpenAI({
   apiKey: "COLE_SUA_CHAVE_OPENAI_AQUI"
 });
 
-// rota teste
 app.get("/", (req, res) => {
   res.send("Backend Collor AI online 🚀");
 });
 
-// rota IA teste
 app.post("/ai", async (req, res) => {
   try {
     const { prompt } = req.body;
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4.1-mini",
       messages: [
+        { role: "system", content: "Você é um assistente útil." },
         { role: "user", content: prompt }
       ]
     });
 
     res.json({
-      resposta: response.choices[0].message.content
+      resposta: completion.choices[0].message.content
     });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Erro na IA" });
+  } catch (error) {
+    console.error("ERRO OPENAI:", error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log("Servidor rodando na porta", PORT);
 });
