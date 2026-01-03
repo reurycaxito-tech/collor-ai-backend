@@ -7,7 +7,7 @@ app.use(cors());
 app.use(express.json());
 
 const openai = new OpenAI({
-  apiKey: "COLE_SUA_CHAVE_OPENAI_AQUI"
+  apiKey: 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
 });
 
 app.get("/", (req, res) => {
