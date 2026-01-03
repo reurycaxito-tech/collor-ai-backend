@@ -1,54 +1,91 @@
-app.post("/ai", async (req, res) => {
-  const { prompt } = req.body;
-  if (!prompt) return res.status(400).json({ error: "Prompt vazio" });
+import express from "express";
+import cors from "cors";
+import OpenAI from "openai";
+import Groq from "groq-sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-  // 1️⃣ GEMINI (PRINCIPAL)
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// ===== CLIENTES =====
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
+});
+
+const gemini = new GoogleGenerativeAI(
+  process.env.GEMINI_API_KEY
+);
+
+// ===== FUNÇÃO INTELIGENTE =====
+async function collorAI(prompt) {
+  // 1️⃣ GEMINI
   try {
     const model = gemini.getGenerativeModel({ model: "gemini-pro" });
     const result = await model.generateContent(prompt);
-
-    return res.json({
-      nome: "COLLOR AI",
-      usada: "gemini",
-      resposta: result.response.text()
-    });
+    return {
+      ai: "GEMINI",
+      resposta: result.response.text(),
+    };
   } catch (e) {
-    console.log("❌ Gemini falhou");
+    console.log("Gemini falhou");
   }
 
-  // 2️⃣ OPENAI (BACKUP PREMIUM)
+  // 2️⃣ GROQ
   try {
-    const r = await openai.chat.completions.create({
+    const completion = await groq.chat.completions.create({
+      model: "llama3-8b-8192",
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    return {
+      ai: "GROQ",
+      resposta: completion.choices[0].message.content,
+    };
+  } catch (e) {
+    console.log("Groq falhou");
+  }
+
+  // 3️⃣ OPENAI
+  try {
+    const completion = await openai.chat.completions.create({
       model: "gpt-4.1-mini",
-      messages: [{ role: "user", content: prompt }]
+      messages: [{ role: "user", content: prompt }],
     });
 
-    return res.json({
-      nome: "COLLOR AI",
-      usada: "openai",
-      resposta: r.choices[0].message.content
-    });
+    return {
+      ai: "OPENAI",
+      resposta: completion.choices[0].message.content,
+    };
   } catch (e) {
-    console.log("❌ OpenAI falhou");
+    console.log("OpenAI falhou");
   }
 
-  // 3️⃣ GROQ (ÚLTIMO RECURSO)
-  try {
-    const r = await groq.chat.completions.create({
-      model: "llama-3.1-8b-instant",
-      messages: [{ role: "user", content: prompt }]
-    });
+  throw new Error("Nenhuma IA disponível");
+}
 
-    return res.json({
-      nome: "COLLOR AI",
-      usada: "groq",
-      resposta: r.choices[0].message.content
-    });
-  } catch (e) {
-    console.log("❌ Groq falhou");
-  }
-
-  res.status(500).json({
-    error: "Todas as IAs estão indisponíveis"
-  });
+// ===== ROTAS =====
+app.get("/", (req, res) => {
+  res.send("Backend COLLOR AI online 🚀");
 });
+
+app.post("/ai", async (req, res) => {
+  try {
+    const { prompt } = req.body;
+    const resposta = await collorAI(prompt);
+    res.json(resposta);
+  } catch (err) {
+    res.status(500).json({
+      error: "COLLOR AI indisponível",
+    });
+  }
+});
+
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () =>
+  console.log("COLLOR AI rodando na porta", PORT)
+);
