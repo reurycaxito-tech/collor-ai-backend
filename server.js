@@ -4,42 +4,33 @@ import OpenAI from "openai";
 
 const app = express();
 
-// Middlewares básicos
 app.use(cors());
 app.use(express.json());
 
-// 🔑 OpenAI usa SOMENTE variável de ambiente
+// ⚠️ A CHAVE VEM DO RENDER (Environment Variables)
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// Rota raiz (teste)
+// ROTA TESTE
 app.get("/", (req, res) => {
   res.send("Backend Collor AI online 🚀");
 });
 
-// Rota da IA (texto)
+// ROTA IA
 app.post("/ai", async (req, res) => {
   try {
     const { prompt } = req.body;
 
     if (!prompt) {
-      return res.status(400).json({
-        error: "Envie um prompt no body"
-      });
+      return res.status(400).json({ error: "Prompt não enviado" });
     }
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4.1-mini",
       messages: [
-        {
-          role: "system",
-          content: "Você é um assistente útil e profissional."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
+        { role: "system", content: "Você é um assistente útil." },
+        { role: "user", content: prompt }
       ]
     });
 
@@ -47,17 +38,16 @@ app.post("/ai", async (req, res) => {
       resposta: completion.choices[0].message.content
     });
 
-  } catch (error) {
-    console.error("ERRO OPENAI:", error);
+  } catch (err) {
+    console.error("ERRO OPENAI:", err);
     res.status(500).json({
-      error: "Erro na IA"
+      error: "Erro na IA",
+      detalhe: err.message
     });
   }
 });
 
-// Porta (Render usa process.env.PORT)
 const PORT = process.env.PORT || 10000;
-
 app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
+  console.log("Servidor rodando na porta", PORT);
 });
